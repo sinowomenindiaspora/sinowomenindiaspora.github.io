@@ -191,7 +191,7 @@ function StoryArchive({ supabase }) {
   const generateBalloonProps = (index) => ({
     startX: Math.random() * (window.innerWidth - 250) + 50,
     duration: 25 + Math.random() * 15,
-    delay: index * 2,
+    delay: index * 4 + Math.random() * 2,
     drift: (Math.random() - 0.5) * 150,
     wobbleDuration: 6 + Math.random() * 4,
     randomOffset: (Math.random() - 0.5) * 100
@@ -201,10 +201,6 @@ function StoryArchive({ supabase }) {
 
   return (
     <ArchiveContainer>
-      <PageTitle onClick={() => navigate('/')} style={{fontFamily:'balloon', fontSize:"3vh", lineHeight:1}}>
-            ARCHIVE OF THE SINO<br />
-            WOMEN'S DIASPORA
-      </PageTitle>
 
       {displayStories.map((story, index) => {
         const props = generateBalloonProps(index);
@@ -219,7 +215,7 @@ function StoryArchive({ supabase }) {
             onClick={() => handleBalloonClick(story)}
           >
             <BalloonContent wobbleDuration={props.wobbleDuration}>
-              <BalloonIcon src={markerIcon} style={{width:80, height:140}} alt="marker" />
+              <BalloonIcon src={markerIcon} style={{width:80, height:80}} alt="marker" />
               <TextContainer>
                 <PlaceText>
                   {story.region || story.here_happened || 'unknown'}

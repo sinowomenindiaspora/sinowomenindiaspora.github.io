@@ -23,13 +23,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-// Remove IncidentModal import since it's not used
 import { useIncident } from '../context/IncidentContext';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
-import ShareIcon from '@mui/icons-material/Share';
-import ReplyIcon from '@mui/icons-material/Reply';
-
 // Create a custom theme with warmer colors
 const theme = createTheme({
   palette: {
@@ -85,13 +79,9 @@ const theme = createTheme({
 });
 
 function IncidentInfo({ supabase }) {
-  // 简化URL参数解析
   const getIdFromUrl = () => {
-    // 尝试从hash中获取ID
     const hash = window.location.hash;
     console.log('Full hash:', hash);
-
-    // 方法1: 从hash查询参数获取
     const queryStart = hash.indexOf('?');
     if (queryStart !== -1) {
       const queryString = hash.substring(queryStart + 1);
@@ -102,14 +92,6 @@ function IncidentInfo({ supabase }) {
         console.log('ID from hash:', hashId);
         return hashId;
       }
-    }
-
-    // 方法2: 从search参数获取（备用）
-    const searchParams = new URLSearchParams(window.location.search);
-    const searchId = searchParams.get('id');
-    if (searchId) {
-      console.log('ID from search:', searchId);
-      return searchId;
     }
 
     console.log('No ID found in URL');
@@ -150,7 +132,6 @@ function IncidentInfo({ supabase }) {
     try {
       const storageKey = `selectedIncident_${incidentId}`;
       localStorage.removeItem(storageKey);
-      // 也清理旧的通用key（向后兼容）
       localStorage.removeItem('selectedIncident');
     } catch (error) {
       console.error('Error clearing localStorage:', error);
@@ -168,7 +149,7 @@ function IncidentInfo({ supabase }) {
       return;
     }
 
-    // 首先尝试从localStorage获取缓存数据
+    // 从localStorage获取缓存数据
     const storedIncident = getStoredIncident(targetId);
     if (storedIncident) {
       setIncident(storedIncident);
@@ -200,7 +181,6 @@ function IncidentInfo({ supabase }) {
     fetchIncidentDetails();
   }, [fetchIncidentDetails]);
 
-  // Update comments fetch to use id from query parameter or selectedIncident.id
   useEffect(() => {
     const fetchComments = async () => {
       if (!id && !selectedIncident?.id) return;
@@ -299,9 +279,18 @@ function IncidentInfo({ supabase }) {
   return (
       <Box sx={{ minHeight: '100vh', pt: 8, pb: 4 }}>
         <Container maxWidth="md">
-          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 2,
+            mb: 3
+          }}>
         {/* 左侧小地图 */}
-        <Box sx={{ width: '30vh', height: '30vh', flexShrink: 0 }}>
+        <Box sx={{
+          width: { xs: '100%', md: '30vh' },
+          height: { xs: '40vh', md: '30vh' },
+          flexShrink: 0
+        }}>
           <Paper elevation={1} sx={{ height: '100%', overflow: 'hidden', borderRadius: '8px' }}>
             {incident.lat && incident.lng && (
               <MapContainer
@@ -321,8 +310,8 @@ function IncidentInfo({ supabase }) {
                   position={[incident.lat, incident.lng]}
                   icon={new L.Icon({
                     iconUrl: require('../assets/map_marker/regular-marker.png'),
-                    iconSize: [60, 90],
-                    iconAnchor: [10, 32]
+                    iconSize: [60, 60],
+                    iconAnchor: [20, 32]
                   })}
                 />
               </MapContainer>

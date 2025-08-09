@@ -24,3 +24,8 @@
 .marker-icon {
   filter: none !important;
 }
+
+.temp-marker-icon {
+  filter: hue-rotate(24deg) brightness(1.2) !important;
+  z-index: 1000;
+}

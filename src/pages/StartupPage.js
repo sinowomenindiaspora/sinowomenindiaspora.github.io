@@ -1,11 +1,14 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, useMediaQuery, useTheme, } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import backgroundImage from '../assets/images/background.png';
+
 
 function StartupPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const menuItems = [
     { label: '写故事', path: '/map' },
@@ -67,7 +70,7 @@ function StartupPage() {
         <Typography
           sx={{
             fontFamily: 'balloon',
-            fontSize: '4rem',
+            fontSize: isMobile? '2.5rem':'4rem',
             fontWeight: 'bold',
             color: '#000',
             textTransform: 'uppercase',
@@ -75,8 +78,8 @@ function StartupPage() {
             textAlign: 'center'
           }}
         >
-          Archive of the<br />
-          Sino Women's<br />
+          Archive of<br />
+          Sino Women in<br />
           Diaspora
         </Typography>
       </Box>
@@ -100,7 +103,7 @@ function StartupPage() {
         </Typography>
       </Box>
 
-      {/* Bottom menu */}
+      {/* Bottom menu - 桌面端显示，移动端隐藏 */}
       <Box
         sx={{
           position: 'absolute',
@@ -110,7 +113,7 @@ function StartupPage() {
           zIndex: 3,
           width: '100%',
           padding: 3,
-          display: 'flex',
+          display: { xs: 'none', md: 'flex' },
           justifyContent: 'center',
           gap: { xs: 3, md: 6 }
         }}

@@ -1,69 +1,109 @@
-import React, { useState } from 'react';
-import { Select, MenuItem, Box, Typography, TextField, useMediaQuery, useTheme, Chip, Collapse, IconButton } from '@mui/material';
+import React, { useState, useMemo } from 'react';
+import PropTypes from 'prop-types';
+import './FilterBar.css';
+import { Select, MenuItem, Box, Typography, TextField, useMediaQuery, useTheme, Chip, Collapse, IconButton, ToggleButton, ToggleButtonGroup, CircularProgress } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import CheckIcon from '@mui/icons-material/Check';
 
-function FilterBar({ onRegionChange, onMoodChange }) {
+function FilterBar({
+  // 新增：添加模式受控（移动端隐藏）
+  isAddingMode = false,
+  // 新增：类型切换（stories / spaces）
+  filterTypeOptions = ['stories', 'spaces'],
+  onFilterTypeChange = () => {},
+  // 地区（由父组件传入七大洲）
+  regionOptions = [],
+  onRegionChange = () => {},
+  // 暴力类型（与数据库变量名一致）
+  violenceTypeOptions = [],
+  onViolenceTypeChange = () => {},
+  // 新增：搜索提交与错误信息
+  onSearchSubmit = () => {},
+  searchError = '',
+  // 新增：搜索加载态
+  searchLoading = false,
+  // 透传父级样式
+  style
+}) {
   const [searchValue, setSearchValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedViolenceType, setSelectedViolenceType] = useState('');
+  // 将展示类型由“单选字符串”改为“多选数组”，默认全选
+  const defaultTypes = useMemo(() => (Array.isArray(filterTypeOptions) && filterTypeOptions.length > 0 ? filterTypeOptions : ['stories', 'spaces']), [filterTypeOptions]);
+  const [selectedFilterTypes, setSelectedFilterTypes] = useState(defaultTypes);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  const regionLabelMap = useMemo(() => {
+    const map = {};
+    (regionOptions || []).forEach(opt => {
+      if (opt && typeof opt.value !== 'undefined') map[opt.value] = opt.label || String(opt.value);
+    });
+    return map;
+  }, [regionOptions]);
+
+  const violenceLabelMap = useMemo(() => {
+    const map = {};
+    (violenceTypeOptions || []).forEach(opt => {
+      if (opt && typeof opt.value !== 'undefined') map[opt.value] = opt.label || String(opt.value);
+    });
+    return map;
+  }, [violenceTypeOptions]);
+
+  const getRegionLabel = (value) => {
+    if (!value) return '全部';
+    return regionLabelMap[value] || '全部';
+  };
+
+  const getViolenceTypeLabel = (value) => {
+    if (!value) return '全部';
+    return violenceLabelMap[value] || '全部';
+  };
+
   const handleRegionChange = (event) => {
     const value = event.target.value;
     setSelectedRegion(value);
-    onRegionChange(event);
+    onRegionChange({ target: { value } });
   };
 
   const handleViolenceTypeChange = (event) => {
     const value = event.target.value;
     setSelectedViolenceType(value);
-    onMoodChange(event);
+    onViolenceTypeChange({ target: { value } });
   };
 
-  const getRegionLabel = (value) => {
-    const regions = {
-      '': '全部',
-      'china': '中国',
-      'usa': '美国',
-      'france': '法国',
-      'uk': '英国',
-      'japan': '日本'
-    };
-    return regions[value] || '全部';
+  const handleFilterTypesChange = (event, next) => {
+    let value = Array.isArray(next) ? next : [];
+    if (!value.length) value = defaultTypes;
+    setSelectedFilterTypes(value);
+    onFilterTypeChange({ target: { value } });
+    if (!value.includes('stories')) setSelectedViolenceType('');
   };
 
-  const getViolenceTypeLabel = (value) => {
-    const types = {
-      '': '全部',
-      'physical': '身体暴力',
-      'mental': '精神暴力',
-      'sexual': '性暴力',
-      'third_party': '借助第三方的暴力',
-      'cyber': '网络暴力'
-    };
-    return types[value] || '全部';
+  const submitSearch = () => {
+    if (searchLoading) return; // 加载中，避免重复提交
+    const v = (searchValue || '').trim();
+    if (!v) return;
+    onSearchSubmit(v);
   };
 
+  if (isMobile && isAddingMode) {
+    return null;
+  }
+
+  // Mobile UI
   if (isMobile) {
     return (
       <Box
+        className="filterbar-container filterbar--mobile"
+        style={style}
         sx={{
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '0 0 16px 16px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-          margin: '0',
-          width: '100%',
-          position: 'sticky',
-          top: '60px',
-          zIndex: 200
+          zIndex: 1200,
         }}
       >
         {/* Mobile Header */}
@@ -72,25 +112,33 @@ function FilterBar({ onRegionChange, onMoodChange }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            p: 2,
+            width: '100%',
+            py: 1,
             borderBottom: isExpanded ? '1px solid rgba(0,0,0,0.1)' : 'none'
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-            <SearchIcon sx={{ color: '#666', fontSize: '20px' }} />
+            {searchLoading ? (
+              <CircularProgress size={20} thickness={5} sx={{ color: '#ff005d' }} />
+            ) : (
+              <SearchIcon sx={{ color: '#666', fontSize: '20px', cursor: 'pointer' }} onClick={submitSearch} />
+            )}
             <TextField
               size="small"
-              placeholder="搜索你的那只气球"
+              placeholder="搜索你的那只气球(ID)"
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitSearch(); }}
+              inputMode="numeric"
+              disabled={searchLoading}
               sx={{
                 flex: 1,
                 '& .MuiOutlinedInput-root': {
                   border: 'none',
                   '& fieldset': { border: 'none' },
                   '& input': {
-                    padding: '8px 12px',
-                    fontSize: '16px',
+                    padding: '8px 8px',
+                    fontSize: '14px',
                     color: '#333'
                   }
                 }
@@ -100,22 +148,45 @@ function FilterBar({ onRegionChange, onMoodChange }) {
 
           <IconButton
             onClick={() => setIsExpanded(!isExpanded)}
-            sx={{
-              color: '#666',
-              backgroundColor: 'transparent',
-            }}
+            sx={{ color: '#666' }}
+            aria-label="筛选"
           >
-            <FilterListIcon />
-            {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            {isExpanded ? <ExpandLessIcon /> : <FilterListIcon />}
           </IconButton>
         </Box>
 
+        {/* 搜索错误信息（移动端） */}
+        {searchError && (
+          <Typography sx={{ color: '#d32f2f', fontSize: '12px', mt: 0.5, px: 1 }}>
+            {searchError}
+          </Typography>
+        )}
+
         {/* Mobile Filters */}
-        <Collapse in={isExpanded}>
-          <Box sx={{ p: 2, pt: 0 }}>
-            {/* Active Filters Display */}
-            {(selectedRegion || selectedViolenceType) && (
-              <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Collapse in={isExpanded} sx={{ width: '100%'}}>
+          <Box sx={{ pt: 1, width: '100%' }}>
+            {/* Active Filters Display：仅在非默认时显示 */}
+            {(
+              (selectedRegion || selectedViolenceType) ||
+              (selectedFilterTypes.length !== defaultTypes.length)
+            ) && (
+              <Box sx={{ mb: 1, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                {selectedFilterTypes.length !== defaultTypes.length && (
+                  <Chip
+                    label={`展示: ${selectedFilterTypes.map(t => t === 'stories' ? '故事' : '空间').join(' + ')}`}
+                    onDelete={() => {
+                      setSelectedFilterTypes(defaultTypes);
+                      onFilterTypeChange({ target: { value: defaultTypes } });
+                    }}
+                    sx={{
+                      backgroundColor: 'rgba(255, 0, 93, 0.73)',
+                      color: '#333',
+                      padding:'inherit',
+                      margin:'inherit',
+                      '& .MuiChip-deleteIcon': { color: '#ff005d' }
+                    }}
+                  />
+                )}
                 {selectedRegion && (
                   <Chip
                     label={`位置: ${getRegionLabel(selectedRegion)}`}
@@ -127,26 +198,22 @@ function FilterBar({ onRegionChange, onMoodChange }) {
                     sx={{
                       backgroundColor: 'rgba(255,0,93,0.1)',
                       color: '#333',
-                      '& .MuiChip-deleteIcon': {
-                        color: '#ff005d'
-                      }
+                      '& .MuiChip-deleteIcon': { color: '#ff005d' }
                     }}
                   />
                 )}
-                {selectedViolenceType && (
+                {selectedViolenceType && selectedFilterTypes.includes('stories') && (
                   <Chip
-                    label={`类型: ${getViolenceTypeLabel(selectedViolenceType)}`}
+                    label={`暴力: ${getViolenceTypeLabel(selectedViolenceType)}`}
                     onDelete={() => {
                       setSelectedViolenceType('');
-                      onMoodChange({ target: { value: '' } });
+                      onViolenceTypeChange({ target: { value: '' } });
                     }}
                     size="small"
                     sx={{
                       backgroundColor: 'rgba(255,0,93,0.1)',
                       color: '#333',
-                      '& .MuiChip-deleteIcon': {
-                        color: '#ff005d'
-                      }
+                      '& .MuiChip-deleteIcon': { color: '#ff005d' }
                     }}
                   />
                 )}
@@ -154,70 +221,108 @@ function FilterBar({ onRegionChange, onMoodChange }) {
             )}
 
             {/* Filter Options */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {/* 展示（多选切换） */}
               <Box>
-                <Typography sx={{ fontSize: '14px', color: '#666', mb: 1, fontWeight: 'bold' }}>
-                  🎈 位置
-                </Typography>
+                <Typography className="filterbar-label" sx={{ mb: 0.5 }}>展示</Typography>
+                <ToggleButtonGroup
+                  value={selectedFilterTypes}
+                  onChange={handleFilterTypesChange}
+                  aria-label="展示类型"
+                  size="small"
+                  sx={{
+                    width: '100%',
+                    display: 'flex',
+                    gap: '2px',
+                    '& .MuiToggleButtonGroup-grouped': {
+                      flex: 1,
+                      borderRadius: '8px !important',
+                    },
+                    '& .MuiToggleButton-root': {
+                      textTransform: 'none',
+                      fontSize: '14px',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      '&.Mui-selected': {
+                        backgroundColor: 'rgba(255,0,93,0.12)',
+                        borderColor: '#ff005d',
+                        color: '#ff005d'
+                      }
+                    }
+                  }}
+                >
+                  <ToggleButton value="stories" aria-label="故事">
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {selectedFilterTypes.includes('stories') && (
+                        <CheckIcon sx={{ fontSize: 16, color: '#ff005d' }} />
+                      )}
+                      <span>故事</span>
+                    </Box>
+                  </ToggleButton>
+                  <ToggleButton value="spaces" aria-label="空间">
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {selectedFilterTypes.includes('spaces') && (
+                        <CheckIcon sx={{ fontSize: 16, color: '#ff005d' }} />
+                      )}
+                      <span>空间</span>
+                    </Box>
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
+              {/* 地区切换（七大洲） */}
+              <Box>
+                <Typography className="filterbar-label" sx={{ mb: 0.5 }}>位置</Typography>
                 <Select
                   fullWidth
                   size="small"
                   value={selectedRegion}
                   onChange={handleRegionChange}
+                  variant="standard"
+                  MenuProps={{
+                    disableScrollLock: true,
+                    PaperProps: { sx: { zIndex: 1350 } }
+                  }}
                   sx={{
-                    backgroundColor: 'white',
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderRadius: '8px'
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#ff005d'
-                    },
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#ff005d'
-                    }
+                    '&::before': { borderBottomColor: '#ff005d' },
+                    '&::after': { borderBottomColor: '#ff005d' },
+                    '& .MuiSelect-select': { px: 0, py: '6px' }
                   }}
                 >
                   <MenuItem value="">全部位置</MenuItem>
-                  <MenuItem value="china">中国</MenuItem>
-                  <MenuItem value="usa">美国</MenuItem>
-                  <MenuItem value="france">法国</MenuItem>
-                  <MenuItem value="uk">英国</MenuItem>
-                  <MenuItem value="japan">日本</MenuItem>
+                  {(regionOptions || []).map(opt => (
+                    <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                  ))}
                 </Select>
               </Box>
 
-              <Box>
-                <Typography sx={{ fontSize: '14px', color: '#666', mb: 1, fontWeight: 'bold' }}>
-                  🎈 暴力类型
-                </Typography>
-                <Select
-                  fullWidth
-                  size="small"
-                  value={selectedViolenceType}
-                  onChange={handleViolenceTypeChange}
-                  sx={{
-                    backgroundColor: 'white',
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderRadius: '8px'
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#ff005d'
-                    },
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#ff005d'
-                    }
-                  }}
-                >
-                  <MenuItem value="">全部类型</MenuItem>
-                  <MenuItem value="physical">身体暴力</MenuItem>
-                  <MenuItem value="mental">精神暴力</MenuItem>
-                  <MenuItem value="sexual">性暴力</MenuItem>
-                  <MenuItem value="third_party">借助第三方的暴力</MenuItem>
-                  <MenuItem value="cyber">网络暴力</MenuItem>
-                </Select>
-              </Box>
+              {/* 暴力类型（仅在包含 stories 时展示） */}
+              {selectedFilterTypes.includes('stories') && (
+                <Box>
+                  <Typography className="filterbar-label" sx={{ mb: 0.5 }}>暴力类型</Typography>
+                  <Select
+                    fullWidth
+                    size="small"
+                    value={selectedViolenceType}
+                    onChange={handleViolenceTypeChange}
+                    variant="standard"
+                    MenuProps={{
+                      disableScrollLock: true,
+                      PaperProps: { sx: { zIndex: 1350 } }
+                    }}
+                    sx={{
+                      '&::before': { borderBottomColor: '#ff005d' },
+                      '&::after': { borderBottomColor: '#ff005d' },
+                      '& .MuiSelect-select': { px: 0, py: '6px' }
+                    }}
+                  >
+                    <MenuItem value="">全部类型</MenuItem>
+                    {(violenceTypeOptions || []).map(opt => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </Box>
+              )}
             </Box>
           </Box>
         </Collapse>
@@ -225,93 +330,131 @@ function FilterBar({ onRegionChange, onMoodChange }) {
     );
   }
 
-  // Desktop version
+  // Desktop version（固定在 AppBar 下方）
   return (
     <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 3,
-        p: 2,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        backdropFilter: 'blur(10px)',
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        margin: '0 auto',
-        maxWidth: '1000px'
-      }}
+      className="filterbar-container filterbar--desktop"
+      style={style}
+      sx={{ zIndex: 1200 }}
     >
-
+      {/* 展示（多选） */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box sx={{ width: '8px', height: '8px', backgroundColor: 'red', borderRadius: '50%' }} />
-        <Typography sx={{ fontSize: '14px', color: '#333', fontWeight: 'bold' }}>位置</Typography>
+        <Typography className="filterbar-label">展示</Typography>
+        <ToggleButtonGroup
+          value={selectedFilterTypes}
+          onChange={handleFilterTypesChange}
+          aria-label="展示类型"
+          size="small"
+          sx={{
+            display: 'flex',
+            gap: '2px',
+            '& .MuiToggleButton-root': {
+              textTransform: 'none',
+              fontSize: '14px',
+              padding: '4px 10px',
+              borderRadius: '8px',
+              '&.Mui-selected': {
+                backgroundColor: 'rgba(255,0,93,0.12)',
+                borderColor: '#ff005d',
+                color: '#ff005d'
+              }
+            }
+          }}
+        >
+          <ToggleButton value="stories" aria-label="故事">
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              {selectedFilterTypes.includes('stories') && (
+                <CheckIcon sx={{ fontSize: 16, color: '#ff005d' }} />
+              )}
+              <span>故事</span>
+            </Box>
+          </ToggleButton>
+          <ToggleButton value="spaces" aria-label="空间">
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              {selectedFilterTypes.includes('spaces') && (
+                <CheckIcon sx={{ fontSize: 16, color: '#ff005d' }} />
+              )}
+              <span>空间</span>
+            </Box>
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      {/* 位置 */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography className="filterbar-label">位置</Typography>
         <Select
           size="small"
           displayEmpty
           value={selectedRegion}
           onChange={handleRegionChange}
           IconComponent={ArrowDropDownIcon}
+          variant="standard"
+          MenuProps={{
+            disableScrollLock: true,
+            PaperProps: { sx: { zIndex: 1350 } }
+          }}
           sx={{
-            minWidth: '80px',
+            minWidth: '120px',
             fontSize: '14px',
-            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-            '& .MuiSelect-select': {
-              padding: '4px 8px',
-              color: '#333',
-              textDecoration: 'underline',
-              textDecorationColor: 'red'
-            }
+            '&::before': { borderBottomColor: '#ff005d' },
+            '&::after': { borderBottomColor: '#ff005d' },
+            '& .MuiSelect-select': { px: 0, py: '4px' }
           }}
         >
           <MenuItem value="">全部</MenuItem>
-          <MenuItem value="china">中国</MenuItem>
-          <MenuItem value="usa">美国</MenuItem>
-          <MenuItem value="france">法国</MenuItem>
-          <MenuItem value="uk">英国</MenuItem>
-          <MenuItem value="japan">日本</MenuItem>
+          {(regionOptions || []).map(opt => (
+            <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+          ))}
         </Select>
       </Box>
 
-      {/* Violence Type Filter */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box sx={{ width: '8px', height: '8px', backgroundColor: 'red', borderRadius: '50%' }} />
-        <Typography sx={{ fontSize: '14px', color: '#333', fontWeight: 'bold' }}>暴力类型</Typography>
-        <Select
-          size="small"
-          displayEmpty
-          value={selectedViolenceType}
-          onChange={handleViolenceTypeChange}
-          IconComponent={ArrowDropDownIcon}
-          sx={{
-            minWidth: '80px',
-            fontSize: '14px',
-            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-            '& .MuiSelect-select': {
-              padding: '4px 8px',
-              color: '#333',
-              textDecoration: 'underline',
-              textDecorationColor: 'red'
-            }
-          }}
-        >
-          <MenuItem value="">全部</MenuItem>
-          <MenuItem value="physical">身体暴力</MenuItem>
-          <MenuItem value="mental">精神暴力</MenuItem>
-          <MenuItem value="sexual">性暴力</MenuItem>
-          <MenuItem value="third_party">借助第三方的暴力</MenuItem>
-          <MenuItem value="cyber">网络暴力</MenuItem>
-        </Select>
-      </Box>
+      {/* 暴力类型（仅在包含 stories 时展示） */}
+      {selectedFilterTypes.includes('stories') && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography className="filterbar-label">暴力类型</Typography>
+          <Select
+            size="small"
+            displayEmpty
+            value={selectedViolenceType}
+            onChange={handleViolenceTypeChange}
+            IconComponent={ArrowDropDownIcon}
+            variant="standard"
+            MenuProps={{
+              disableScrollLock: true,
+              PaperProps: { sx: { zIndex: 1350 } }
+            }}
+            sx={{
+              minWidth: '120px',
+              fontSize: '14px',
+              '&::before': { borderBottomColor: '#ff005d' },
+              '&::after': { borderBottomColor: '#ff005d' },
+              '& .MuiSelect-select': { px: 0, py: '4px' }
+            }}
+          >
+            <MenuItem value="">全部</MenuItem>
+            {(violenceTypeOptions || []).map(opt => (
+              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+            ))}
+          </Select>
+        </Box>
+      )}
 
       {/* Search */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <SearchIcon sx={{ color: '#666', fontSize: '18px' }} />
+        {searchLoading ? (
+          <CircularProgress size={18} thickness={5} sx={{ color: '#ff005d' }} />
+        ) : (
+          <SearchIcon sx={{ color: '#666', fontSize: '18px', cursor: 'pointer' }} onClick={submitSearch} />
+        )}
         <TextField
           size="small"
-          placeholder="搜索你的那只气球"
+          placeholder="搜索你的那只气球(ID)"
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submitSearch(); }}
+          inputMode="numeric"
+          disabled={searchLoading}
           sx={{
             '& .MuiOutlinedInput-root': {
               border: 'none',
@@ -325,8 +468,38 @@ function FilterBar({ onRegionChange, onMoodChange }) {
           }}
         />
       </Box>
+      {/* 搜索错误信息（桌面端） */}
+      {searchError && (
+        <Typography sx={{ color: '#d32f2f', fontSize: '12px', mt: 0.5 }}>
+          {searchError}
+        </Typography>
+      )}
     </Box>
   );
 }
+
+FilterBar.propTypes = {
+  isAddingMode: PropTypes.bool,
+  filterTypeOptions: PropTypes.arrayOf(PropTypes.string),
+  onFilterTypeChange: PropTypes.func, // 回调收到 { target: { value: string[] } }
+  regionOptions: PropTypes.arrayOf(
+    PropTypes.shape({
+      value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      label: PropTypes.string
+    })
+  ),
+  onRegionChange: PropTypes.func,
+  violenceTypeOptions: PropTypes.arrayOf(
+    PropTypes.shape({
+      value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      label: PropTypes.string
+    })
+  ),
+  onViolenceTypeChange: PropTypes.func,
+  onSearchSubmit: PropTypes.func,
+  searchError: PropTypes.string,
+  searchLoading: PropTypes.bool,
+  style: PropTypes.object
+};
 
 export default FilterBar;

@@ -1,33 +1,39 @@
 import React, { useState } from 'react';
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  IconButton, 
-  Drawer, 
-  List, 
-  ListItem, 
-  ListItemText,
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Drawer,
   Box,
-  Container
+  Container,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import CloseIcon from '@mui/icons-material/Close';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Button } from '@mui/material';
-import styled from 'styled-components';
 
-function Header({ isOverMap }) {
+function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const requiresTransparent = location.pathname === '/action' || location.pathname.startsWith('/action/') || location.pathname.startsWith('/about');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const requiresTransparent =
+    location.pathname === '/action' ||
+    location.pathname.startsWith('/action/') ||
+    location.pathname.startsWith('/map') ||
+    location.pathname === '/'||
+    location.pathname.startsWith('/archive');
+  const requiresNoHeader = location.pathname === '/';
 
   const menuItems = [
     { text: '写故事', link: '/map' },
     { text: '故事档案', link: '/archive' },
     { text: '行动', link: '/action' },
     { text: '工具箱', link: '/resources' },
-    { text: '关于我们', link: '/about'}
+    { text: '关于我们', link: '/about' }
   ];
 
   return (
@@ -39,16 +45,18 @@ function Header({ isOverMap }) {
           left: 0,
           right: 0,
           height: '20vh',
-          background: 'linear-gradient(to bottom, rgba(255, 107, 157, 0.5) 0%, transparent 100%)',
+          background:
+            'linear-gradient(to bottom, rgba(255, 107, 157, 0.5) 0%, transparent 100%)',
           zIndex: 1,
           pointerEvents: 'none'
         }}
       />
-      
+
       <AppBar
         position="fixed"
         sx={{
-          background: 'linear-gradient(to bottom,rgba(255, 0, 93, 0.80),rgba(253, 68, 77, 0.49), transparent)',
+          background:
+            'linear-gradient(to bottom,rgba(255, 0, 93, 0.80),rgba(253, 68, 77, 0.49), transparent)',
           backdropFilter: 'blur(10px)',
           color: 'red',
           boxShadow: 'none',
@@ -57,28 +65,118 @@ function Header({ isOverMap }) {
         }}
       >
         <Container maxWidth={false}>
-          <Toolbar sx={{ padding: { xs: '0 16px', md: '0 24px' }, justifyContent: 'center' }}>
-            <Typography 
-              variant="h2" 
-              component={Link} 
-              to="/"
-              sx={{ 
-                textDecoration: 'none',
-                color: '#000',
-                fontFamily: 'balloon',
-                fontSize: { xs: '1.5rem', md: '3rem' },
-                textTransform: 'uppercase',
-                textAlign: 'center'
+          <Toolbar
+            sx={{
+              position: 'relative',
+              padding: { xs: '0 16px', md: '0 24px' },
+              justifyContent: 'center'
+            }}
+          >
+            {!requiresNoHeader && (
+              <Typography
+                variant="h2"
+                component={Link}
+                to="/"
+                sx={{
+                  textDecoration: 'none',
+                  color: '#000',
+                  fontFamily: 'balloon',
+                  lineHeight: '0.8',
+                  fontSize: isMobile? { xs: '1.8em', md: '1.8em' }:{ xs: '2.4em', md: '2.4em' },
+                  textTransform: 'uppercase',
+                  textAlign: 'center'
+                }}
+              >
+                Archive of Sino<br />
+                Women in Diaspora
+              </Typography>
+            )}
+
+            <IconButton
+              aria-label="open menu"
+              onClick={() => setDrawerOpen(true)}
+              sx={{
+                position: 'absolute',
+                left: 6,
+                display: { xs: 'inline-flex', md: 'none' },
+                color: 'grey'
               }}
             >
-              Archive of the Sino<br />
-              Women's Diaspora
-            </Typography>
+              <MenuIcon sx={{ color: '#000' }} />
+            </IconButton>
           </Toolbar>
         </Container>
       </AppBar>
 
-      {/* footer */}
+      <Drawer
+        anchor="top"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        ModalProps={{ keepMounted: true }}
+        slotProps={{
+          paper: {
+            sx: {
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0,0,0,0.15)',
+              backdropFilter: 'blur(10px)',
+              color: '#fff',
+              display: { xs: 'flex', md: 'none' },
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              pt: '12vh',
+              boxShadow: 'none'
+            }
+          }
+        }}
+      >
+        <IconButton
+          aria-label="close menu"
+          onClick={() => setDrawerOpen(false)}
+          sx={{ position: 'absolute', top: 12, right: 12, color: '#fff' }}
+        >
+          <CloseIcon />
+        </IconButton>
+        <Typography
+          variant="h2"
+          component={Link}
+          to="/"
+          sx={{
+            textDecoration: 'none',
+            color: 'rgba(199, 199, 199, 1)',
+            fontFamily: 'balloon',
+            fontSize: { xs: '2rem' },
+            marginBottom: 3,
+            textTransform: 'uppercase',
+            textAlign: 'center'
+          }}
+        >
+          Archive of Sino<br />
+          Women in Diaspora
+        </Typography>
+        {menuItems.map((item) => (
+          <Typography
+            key={item.link}
+            onClick={() => {
+              navigate(item.link);
+              setDrawerOpen(false);
+            }}
+            sx={{
+              fontSize: '1.3rem',
+              my: 2.5,
+              color: '#fff',
+              cursor: 'pointer',
+              fontFamily: 'SimHei, sans-serif',
+              '&:hover': { textDecoration: 'underline' }
+            }}
+          >
+            {item.text}
+          </Typography>
+        ))}
+      </Drawer>
+
+      {/* footer（仅桌面端显示） */}
       <Box
         sx={{
           position: 'fixed',
@@ -88,15 +186,15 @@ function Header({ isOverMap }) {
           zIndex: 1100,
           width: '100%',
           padding: 3,
-          display: 'flex',
+          display: { xs: 'none', md: 'flex' },
           justifyContent: 'center',
           gap: { xs: 3, md: 6 },
           backdropFilter: requiresTransparent ? 'none' : 'blur(30px)'
         }}
       >
-        {menuItems.map((item, index) => (
+        {menuItems.map((item) => (
           <Typography
-            key={index}
+            key={item.link}
             onClick={() => navigate(item.link)}
             sx={{
               fontSize: { xs: '1rem', md: '1.2rem' },

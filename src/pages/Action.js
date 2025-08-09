@@ -17,7 +17,7 @@ const ActionContainer = styled(Box)`
   background-position: center;
   background-repeat: no-repeat;
   font-family: 'Avenir', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  padding-top: 80px; /* 为header留出空间 */
+  padding-top: 80px;
 `;
 
 const ShowcaseContainer = styled(Box)`
@@ -81,25 +81,24 @@ const ArrowButton = styled(IconButton)`
 
 const DateText = styled(Typography)`
   font-family: 'Avenir', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  font-size: 5rem;
+  font-size: 2.5rem;
   font-weight: bold;
   margin-bottom: 10px;
 
   @media (max-width: 768px) {
-    font-size: 3rem;
+    font-size: 2rem;
   }
 `;
 
 
-
 const TitleText = styled(Typography)`
   font-family: 'Avenir', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  font-size: 5rem;
+  font-size: 2.5rem;
   font-weight: bold;
   margin-bottom: 15px;
 
   @media (max-width: 768px) {
-    font-size: 3rem;
+    font-size: 2rem;
   }
 `;
 
@@ -111,7 +110,7 @@ const PreviewText = styled(Typography)`
   margin: 0 auto;
 
   @media (max-width: 768px) {
-    font-size: 1.4rem;
+    font-size: 1.1rem;
   }
 `;
 
@@ -121,36 +120,6 @@ const ClickableArea = styled(Box)`
 
   &:hover {
     transform: scale(1.02);
-  }
-`;
-
-const ViewAllButton = styled(Button)`
-  position: absolute;
-  bottom: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
-  background: transparent;
-  color: #fff;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  border-radius: 8px;
-  padding: 12px 30px;
-  font-family: 'Avenir', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  font-size: 1.1rem;
-  font-weight: 600;
-  text-transform: none;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 1);
-    transform: translateX(-50%) translateY(-2px);
-  }
-
-  @media (max-width: 768px) {
-    bottom: 120px;
-    font-size: 1rem;
-    padding: 10px 20px;
   }
 `;
 
@@ -178,19 +147,6 @@ const GridTitle = styled(Typography)`
   }
 `;
 
-const CloseButton = styled(Button)`
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 8px 20px;
-  border-radius: 20px;
-  font-family: 'Avenir', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  text-transform: none;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-`;
 
 const ActionGrid = styled(Box)`
   display: grid;
@@ -353,7 +309,7 @@ function Action() {
       // 过滤掉加载失败的文件，并按日期排序
       const validActions = actionsData
         .filter(action => action !== null)
-        .sort((a, b) => b.folderId.localeCompare(a.folderId)); // 按文件夹名倒序排列（最新的在前）
+        .sort((a, b) => b.folderId.localeCompare(a.folderId));
 
       setActions(validActions);
     } catch (error) {
@@ -399,7 +355,6 @@ function Action() {
 
   return (
     <ActionContainer>
-      {/* 轮播视图 - 始终显示 */}
       <ShowcaseContainer>
         {carouselActions.length > 1 && (
           <ArrowButton className="left" onClick={handlePrevious}>
@@ -408,8 +363,8 @@ function Action() {
         )}
 
         <ClickableArea onClick={() => handleActionClick()}>
-          <ContentBox>
-            <DateText style={{whiteSpace: 'nowrap'}} variant="h2">
+          <ContentBox style={{width:"68vw", alignItems:'center', justifyContent: 'center'}}>
+            <DateText variant="h2">
               {currentAction.date}
             </DateText>
             <TitleText variant="h3">
@@ -429,7 +384,7 @@ function Action() {
       </ShowcaseContainer>
 
 
-      {/* 网格视图 - 在轮播下面显示 */}
+      {/* 网格视图 */}
       <GridContainer>
           <GridHeader>
             <GridTitle>所有活动</GridTitle>

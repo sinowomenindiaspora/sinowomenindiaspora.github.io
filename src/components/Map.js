@@ -20,23 +20,18 @@ import {
 } from '@mui/material';
 import './Map.css';
 import L from 'leaflet';
-import styled from 'styled-components';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { getRegionFromCoordinates, getAddressFromCoordinates } from '../utils/locationUtils';
 import FilterBar from './FilterBar';
 import CustomButton from './CustomButton';
-import RecentHarms from './RecentHarms';
-import Contributors from './Contributors';
 import { Slider, Chip, Typography, CircularProgress } from '@mui/material';
 import { TypeAnimation } from 'react-type-animation';
 import { useIncident } from '../context/IncidentContext';
 import html2canvas from 'html2canvas';
-import { Container } from 'react-bootstrap';
-import zIndex from '@mui/material/styles/zIndex';
+
 
 
 // 地图事件组件
@@ -74,35 +69,6 @@ const MapController = ({ regionToFocus }) => {
   return null;
 };
 
-// Move SubmitButton definition to the top, outside of any component
-const StyledSubmitButton = styled(Button)(({ $isAddingMode }) => ({
-  background: 'transparent',
-  backgroundSize: '300% 300%',
-  backgroundImage: $isAddingMode
-    ? 'none'
-    : `url(${require('../assets/map_marker/add-story.png')})`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'center',
-  backgroundSize: 'contain',
-  animation: 'none',
-  position: 'static',
-  '@keyframes gradient': {
-    '0%': { backgroundPosition: '0% 50%' },
-    '50%': { backgroundPosition: '100% 50%' },
-    '100%': { backgroundPosition: '0% 50%' }
-  },
-  color: $isAddingMode ? 'primary' : 'transparent',
-  '&:hover': {
-    background: 'transparent',
-    backgroundImage: $isAddingMode
-      ? 'none'
-      : `url(${require('../assets/map_marker/add-story.png')})`,
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'center',
-    backgroundSize: 'contain',
-  }
-}));
-
 const harmTypes = [
   { value: 'physical', label: '身体暴力' },
   { value: 'mental', label: '精神暴力' },
@@ -132,6 +98,13 @@ function Map({ supabase }) {
   const [openReceiptDialog, setOpenReceiptDialog] = useState(false);
   const receiptRef = useRef(null);
   const [locationAddress, setLocationAddress] = useState('获取地址中...');
+  const [submitted,setSubmitted] = useState({
+    data: {
+      id: 1
+    }
+  });
+  // 仅用于显示回执ID，避免结构不一致问题
+  const [receiptId, setReceiptId] = useState(null);
   const [newIncident, setNewIncident] = useState({
     here_happened: '',
     feeling_score: 50,
@@ -151,6 +124,7 @@ function Map({ supabase }) {
   // 添加气球ID搜索状态
   const [balloonIdSearch, setBalloonIdSearch] = useState('');
   const [searchError, setSearchError] = useState('');
+  const [isSearchingId, setIsSearchingId] = useState(false);
 
   const [showViolenceForm, setShowViolenceForm] = useState(false);
   const [showEmergencyAlert, setShowEmergencyAlert] = useState(false);
@@ -274,14 +248,21 @@ function Map({ supabase }) {
     }
 
     try {
-      const { error: submitError } = await supabase
+      const { data, error: submitError } = await supabase
         .from('submissions')
-        .insert([{
+        .insert({
           ...newIncident
-        }]);
+        })
+        .select('id')
+        .single();
 
       if (submitError) throw submitError;
 
+      // data: { id }
+      setSubmitted({ data });
+      setReceiptId(data?.id ?? null);
+      console.log('Inserted submission:', data);
+      
       setSuccessMessage('🕊️ 谢谢你的分享，它将推动改变发生。');
       setShowSuccess(true);
       if (!tempMarker && newIncident.lat && newIncident.lng) {
@@ -355,6 +336,37 @@ function Map({ supabase }) {
     }
   };
 
+  // 通过ID搜索并定位地图
+  const handleSearchById = async (value) => {
+    const id = parseInt(String(value).trim(), 10);
+    if (Number.isNaN(id) || id <= 0) {
+      setSearchError('请输入有效的ID');
+      return;
+    }
+    try {
+      setSearchError('');
+      setIsSearchingId(true);
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('id, lat, lng')
+        .eq('id', id)
+        .limit(1);
+      if (error) throw error;
+
+      const row = Array.isArray(data) ? data[0] : null;
+      if (row && typeof row.lat === 'number' && typeof row.lng === 'number') {
+        setMapRegionToFocus({ center: [row.lat, row.lng], zoom: isMobile ? 17 : 15 });
+      } else {
+        setSearchError("找不到这只气球:'(");
+      }
+    } catch (e) {
+      console.error('搜索气球失败:', e);
+      setSearchError("找不到这只气球:'(");
+    } finally {
+      setIsSearchingId(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       <Dialog
@@ -371,11 +383,11 @@ function Map({ supabase }) {
       >
         <DialogContent style={{ padding: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8b7c9' }}>
           <div style={{ padding: '10px', backgroundColor: '#f8b7c9' }}>
-            <h1 style={{ margin: '0', fontSize: '22px', fontFamily: '"Avenir"', color: 'black' }}> 🕊️ 谢谢你分享，它将推动改变发生。</h1>
+            <h1 style={{ margin: '0', fontSize: '22px', fontFamily: '"Avenir"', color: 'black' }}> 🕊️ 谢谢你的分享，它将推动改变发生。</h1>
           </div>
           <div style={{ width: '100%', maxWidth: '500px', maxHeight: '70vh', overflow: 'auto', padding: '8px' }}>
             <div ref={receiptRef} style={{ backgroundColor: '#ff0000', color: 'black', textAlign: 'center', width: '100%', minHeight: '500px', display: 'flex', flexDirection: 'column', transform: 'scale(1)', transformOrigin: 'top left', overflow: 'hidden' }}>
-              <div style={{ height: '300px', position: 'relative', overflow: 'hidden', padding: 0 }}>
+              <div style={{ height: '250px', position: 'relative', overflow: 'hidden', padding: 0 }}>
                 <div style={{ position: 'relative', height: '100%', width: '100%' }}>
                   {newIncident.lat && newIncident.lng && (
                     <MapContainer
@@ -392,7 +404,7 @@ function Map({ supabase }) {
                         position={[newIncident.lat, newIncident.lng]}
                         icon={new L.Icon({
                           iconUrl: require('../assets/map_marker/regular-marker.png'),
-                          iconSize: [80, 120],
+                          iconSize: [80, 80],
                           iconAnchor: [20, 35]
                         })}
                       />
@@ -406,14 +418,14 @@ function Map({ supabase }) {
                 </p>
               </div>
               <div style={{ flex: '1', backgroundColor: '#ff0000', color: 'black', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '20px 10px', minHeight: '200px' }}>
-                <h2 style={{ margin: '0 0 10px 0', fontSize: '20px', fontFamily: '"Hei"', textAlign: 'center' }}>这里发生了：</h2>
+                <h2 style={{ margin: '0 0 10px 0', fontSize: '20px', fontFamily: '"Hei"', textAlign: 'center' }}>气球 {receiptId ?? submitted?.data?.id ?? submitted?.[0]?.id ?? ';)'}</h2>
                 <h3 style={{ margin: '10px 0', fontSize: '28px', fontFamily: '"Hei"', fontWeight: 'bold', textAlign: 'center', color: 'black', wordWrap: 'break-word' }}>{newIncident.here_happened}</h3>
                 <p style={{ margin: '10px 0 0 0', fontSize: '16px', lineHeight: '1.4', fontFamily: '"Hei"', color: 'black', wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
                   {newIncident.description}
                 </p>
               </div>
               <div style={{ marginTop: 'auto', padding: '5px 0', backgroundColor: '#ff0000' }}>
-                <p style={{ margin: 0, fontSize: '14px', fontFamily: '"balloon"', fontWeight: 'bold', color: 'white' }}>www.Archive of the Chinese Women's Diaspora.com</p>
+                <p style={{ margin: 0, fontSize: '14px', fontFamily: '"balloon"', fontWeight: 'bold', color: 'white' }}>www.archiveofsinowomenindiaspora.github.io</p>
               </div>
             </div>
           </div>
@@ -453,40 +465,52 @@ function Map({ supabase }) {
         </DialogContent>
       </Dialog>
       
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '10vh',
-          left: 0,
-          right: 0,
-          zIndex: 1200,
-          padding: '16px',
-          backgroundColor: 'transparent'
+      <FilterBar
+        isAddingMode={isMobile ? isAddingMode : false}
+        filterTypeOptions={['stories', 'spaces']}
+        onFilterTypeChange={(e) => {
+          // setFilterType(e.target.value);
         }}
-      >
-        <FilterBar
-          onRegionChange={(e) => {
-            const region = e.target.value;
-            if (region) {
-              const mapRegions = {
-                'china': { center: [35.8617, 104.1954], zoom: 4 },
-                'usa': { center: [37.0902, -95.7129], zoom: 4 },
-                'france': { center: [46.2276, 2.2137], zoom: 5 },
-                'uk': { center: [55.3781, -3.4360], zoom: 5 },
-                'japan': { center: [36.2048, 138.2529], zoom: 5 }
-              };
-              if (mapRegions[region]) {
-                setMapRegionToFocus(mapRegions[region]);
-              }
-            } else {
-              setMapRegionToFocus({ center: [20, 0], zoom: 2 });
-            }
-          }}
-          onMoodChange={(e) => {
-            console.log('Selected mood:', e.target.value);
-          }}
-        />
-      </Box>
+        regionOptions={[
+          { value: 'asia', label: '亚洲' },
+          { value: 'europe', label: '欧洲' },
+          { value: 'africa', label: '非洲' },
+          { value: 'north_america', label: '北美洲' },
+          { value: 'south_america', label: '南美洲' },
+          { value: 'australia', label: '大洋洲' },
+          { value: 'antarctica', label: '南极洲' }
+        ]}
+        onRegionChange={(e) => {
+          const region = e.target.value;
+          const mapRegions = {
+            'asia': { center: [34, 100], zoom: 2 },
+            'europe': { center: [54, 15], zoom: 3 },
+            'africa': { center: [0, 20], zoom: 3 },
+            'north_america': { center: [50, -100], zoom: 2 },
+            'south_america': { center: [-15, -60], zoom: 3 },
+            'australia': { center: [-25, 135], zoom: 3 },
+            'antarctica': { center: [-80, 0], zoom: 2 }
+          };
+          if (mapRegions[region]) {
+            setMapRegionToFocus(mapRegions[region]);
+          } else {
+            setMapRegionToFocus({ center: [20, 0], zoom: 2 });
+          }
+        }}
+        violenceTypeOptions={[
+          { value: 'physical', label: '身体暴力' },
+          { value: 'mental', label: '精神暴力' },
+          { value: 'sexual', label: '性暴力' },
+          { value: 'third_party', label: '借助第三方的暴力' },
+          { value: 'cyber', label: '网络暴力' }
+        ]}
+        onViolenceTypeChange={(e) => {
+          // setViolenceType(e.target.value)
+        }}
+        onSearchSubmit={handleSearchById}
+        searchError={searchError}
+        searchLoading={isSearchingId}
+      />
 
       <MapContainer
         center={[46.2276, 2.2137]}
@@ -514,112 +538,142 @@ function Map({ supabase }) {
         />
         <MapController regionToFocus={mapRegionToFocus} />
 
-        {!openReceiptDialog && <div style={{
-          position: 'absolute',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 999,
-          pointerEvents: 'auto',
-          width: '250px',
-          height: '150px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
-          {!isAddingMode ? (
-            <img
-              src={require('../assets/map_marker/add-story.png')}
-              alt="Add Story"
-              onClick={() => setIsAddingMode(!isAddingMode)}
-              style={{
-                width: '100px',
-                height: 'auto',
-                zIndex: 10,
-                cursor: 'pointer',
-                pointerEvents: 'auto'
-              }}
-            />
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <CustomButton
-                variant="outlined"
+        {!openReceiptDialog && (
+          <div style={{
+            position: 'absolute',
+            bottom: isMobile ? '80px' : '100px',
+            left: isMobile ? '10px' : '20px',
+            zIndex: 999,
+            pointerEvents: 'auto',
+          }}>
+            {!isAddingMode ? (
+              <div
                 onClick={() => setIsAddingMode(!isAddingMode)}
-                sx={{
-                  width: '280px',
-                  height: '60px',
-                  borderRadius: '30px',
-                  color: 'red',
-                  fontWeight: 'bold',
-                  borderColor: 'red',
-                  backgroundColor: 'white',
-                  fontSize: '16px',
-                  textTransform: 'none',
-                  '&:hover': {
-                    backgroundColor: '#fff0f0',
+                style={{
+                  position: 'relative',
+                  width: isMobile ? '100px' : '120px',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  pointerEvents: 'auto',
+                }}
+              >
+                <img
+                  src={require('../assets/images/add_story.png')}
+                  alt="Add Story"
+                  style={{
+                    width: '120%',
+                    height: 'auto',
+                    zIndex: 10,
+                    filter: 'drop-shadow(2px 2px 8px rgba(0,0,0,0.3))'
+                  }}
+                />
+              </div>
+            ) : (
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'flex-start', 
+                gap: 1.5,
+                minWidth: isMobile ? '250px' : '280px',
+                height: isMobile ? '70vh' : 'auto',
+                justifyContent: isMobile ? 'flex-end' : 'flex-start',
+                overflowY: isMobile ? 'auto' : 'visible'
+              }}>
+                <Button
+                  variant="outlined"
+                  onClick={() => {}}
+                  sx={{
+                    width: isMobile ? '250px' : '280px',
+                    height: isMobile ? '45px' : '50px',
+                    borderRadius: 0,
+                    outlineStyle: "2",
+                    color: 'red',
+                    fontWeight: 'bold',
                     borderColor: 'red',
-                  }
-                }}
-              >
-                点选一个原点，放飞你的气球
-              </CustomButton>
-              <CustomButton
-                variant="contained"
-                sx={{
-                  width: '280px',
-                  height: '60px',
-                  backgroundColor: "rgba(0,0,0,0.2)",
-                  borderRadius: '30px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  textTransform: 'none',
-                  boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-                  '&:hover': {
-                    transform: 'scale(1.05)',
-                    transition: 'transform 0.2s'
-                  },
-                }}
-                onClick={() => {
-                  if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                      (position) => {
-                        const { latitude, longitude } = position.coords;
-                        console.log("获取到位置:", latitude, longitude);
-                        setTempMarker({ latitude, longitude });
-                        setMapRegionToFocus({
-                          center: [latitude, longitude],
-                          zoom: 10
-                        });
-                        setNewIncident(prev => ({
-                          ...prev,
-                          lat: latitude,
-                          lng: longitude
-                        }));
-                      },
-                      (error) => {
-                        console.error("定位失败:", error);
-                        setError("无法获取您的位置，请手动在地图上选择");
-                      }
-                    );
-                  } else {
-                    setError("您的浏览器不支持地理定位");
-                  }
-                }}
-              >
-                定位气球到我的城市
-              </CustomButton>
-            </Box>
-          )}
-        </div>}
+                    backgroundColor: 'white',
+                    fontSize: isMobile ? '12px' : '14px',
+                    textTransform: 'none',
+                  }}
+                >
+                  拖拽地图，点选原点，填写你的故事
+                </Button>
+                <CustomButton
+                  variant="contained"
+                  sx={{
+                    width: isMobile ? '250px' : '280px',
+                    height: isMobile ? '45px' : '50px',
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                    borderRadius: isMobile ? '22.5px' : '25px',
+                    fontSize: isMobile ? '12px' : '14px',
+                    fontWeight: 'bold',
+                    textTransform: 'none',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      transform: 'scale(1.02)',
+                      transition: 'transform 0.2s'
+                    },
+                  }}
+                  onClick={() => {
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                          const { latitude, longitude } = position.coords;
+                          console.log('获取到位置:', latitude, longitude);
+                          setTempMarker({ latitude, longitude });
+                          setMapRegionToFocus({
+                            center: [latitude, longitude],
+                            zoom: 10
+                          });
+                          setNewIncident(prev => ({
+                            ...prev,
+                            lat: latitude,
+                            lng: longitude
+                          }));
+                        },
+                        (error) => {
+                          console.error('定位失败:', error);
+                          alert('无法获取位置信息，请手动在地图上选择。如果您曾禁用位置获取，可以在浏览器设置中重新允许位置读取');
+                        }
+                      );
+                    } else {
+                      setError('您的浏览器不支持地理定位');
+                    }
+                  }}
+                >
+                  定位气球到我的位置
+                </CustomButton>
+                <CustomButton
+                  variant="contained"
+                  sx={{
+                    width: isMobile ? '250px' : '280px',
+                    height: isMobile ? '45px' : '50px',
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                    borderRadius: isMobile ? '22.5px' : '25px',
+                    fontSize: isMobile ? '12px' : '14px',
+                    fontWeight: 'bold',
+                    textTransform: 'none',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                    '&:hover': {
+                      transform: 'scale(1.02)',
+                      transition: 'transform 0.2s'
+                    },
+                  }}
+                  onClick={handleCancel}
+                >
+                  取消添加
+                </CustomButton>
+              </Box>
+            )}
+          </div>
+        )}
         {tempMarker && tempMarker.latitude && tempMarker.longitude && !openReceiptDialog && (
           <Marker
             position={[tempMarker.latitude, tempMarker.longitude]}
             icon={new L.Icon({
               iconUrl: require('../assets/map_marker/regular-marker.png'),
-              iconSize: [60, 90],
-              iconAnchor: [27, 45],
-              className: 'marker-icon'
+              iconSize: [50, 50], // 添加模式时的ballonn要比普通气球稍微大点
+              iconAnchor: [40, 60],
+              className: 'temp-marker-icon'
             })}
           />
         )}
@@ -632,7 +686,7 @@ function Map({ supabase }) {
               icon={new L.Icon({
                 // Use our custom marker
                 iconUrl: require('../assets/map_marker/regular-marker.png'),
-                iconSize: [55, 90],
+                iconSize: [32, 32],
                 iconAnchor: [27, 45]
               })}
               eventHandlers={{
@@ -677,8 +731,8 @@ function Map({ supabase }) {
               position={[space.lat, space.lng]}
               icon={new L.Icon({
                 iconUrl: require('../assets/map_marker/resource-marker.png'),
-                iconSize: [25, 70],
-                iconAnchor: [27, 45]
+                iconSize: [32, 32],
+                iconAnchor: [0, 45]
               })}
               eventHandlers={{
                 click: () => {
@@ -734,19 +788,19 @@ function Map({ supabase }) {
         <Stack spacing={1}
           sx={{
             position: isMobile ? 'absolute' : 'absolute',
-            top: isMobile ? '60vh' : '50%',
+            top: isMobile ? '35vh' : '45%',
             right: isMobile ? 0 : 20,
             left: isMobile ? 0 : 'auto',
             transform: isMobile ? 'none' : 'translateY(-50%)',
             zIndex: 1200,
             width: isMobile ? '100%' : '400px',
             mt: 0,
-            height: isMobile ? '40vh' : 'auto',
+            height: isMobile ? '65vh' : '50vh',
             overflowY: isMobile ? 'auto' : 'visible'
           }}
         >
-          <div style={{ padding: '5px'}}>
-            <Accordion>
+          <div style={{ padding: '0px'}}>
+            <Accordion style={{backgroundColor:"transparent", borderRadius:"20px"}}>
               <AccordionSummary   
                   expandIcon={<ArrowDownwardIcon />}
                   aria-controls="panel1-content"
@@ -754,18 +808,20 @@ function Map({ supabase }) {
                   sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  borderRadius: '4px',
+                  borderRadius: '20px',
+                  
                   width: '100%',
                   justifyContent: 'space-between',
-                  backgroundColor: 'rgba(255, 0, 17, 0.45)'
+                  backgroundColor: '#FF001280'
                 }}
                 >
-                <Typography component="span">📝 信息</Typography>
+                <Typography sx={{fontWeight:700, fontSize:"1.2rem", color:"#95000A"}} component="span">📝 信息</Typography>
               </AccordionSummary>
               <AccordionDetails
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
+                  borderRadius:"20px",
                   width: '100%',
                   justifyContent: 'space-between',
                   backgroundColor: 'rgba(255, 0, 17, 0.25)'
@@ -778,12 +834,13 @@ function Map({ supabase }) {
           </div>
           <div 
           style={{ padding: '15px', position: 'relative',
-            backgroundColor: isMobile? 'white': 'rgba(204, 204, 204, 0.75)',
+            backgroundColor: 'rgba(204, 204, 205, 0.9)',
             padding: 25,
+            height: isMobile ? "auto":"80vh",
             borderRadius: isMobile ? 30 : 70, }}>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Typography sx={{ whiteSpace: 'nowrap' }}>这里发生了...</Typography>
+              <Typography sx={{ whiteSpace: 'nowrap'}}>这里发生了...</Typography>
               <TextField
                 fullWidth
                 size="small"
@@ -800,11 +857,12 @@ function Map({ supabase }) {
             </Box>
             <Box sx={{ mt: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography gutterBottom fontFamily={'Hei'}>我的感受是</Typography>
+                <Typography gutterBottom fontFamily={'Hei'}>我当时的感受如何？</Typography>
                 <Typography variant="body2" fontFamily={'Hei'} color={newIncident.feeling_score < 0 ? "error" : "success"}>
                   {newIncident.feeling_score}
                 </Typography>
               </Box>
+              <Typography fontFamily={'Hei'} fontSize={12}>拖动滑杆，在极差到极好之间（左到右端），选择你的感受值。</Typography>
               <Slider
                 value={newIncident.feeling_score}
                 onChange={(e, value) => setNewIncident({ ...newIncident, feeling_score: value })}
@@ -860,7 +918,7 @@ function Map({ supabase }) {
               </Alert>
             )}
             <Box sx={{ mt: 3 }}>
-              <Box sx={{ height: '24px', mb: 1 }}>
+              {/* <Box sx={{ height: '24px', mb: 1 }}>
                 <TypeAnimation
                   sequence={[
                     '我觉得...',
@@ -874,7 +932,8 @@ function Map({ supabase }) {
                   speed={30}
                   repeat={Infinity}
                 />
-              </Box>
+              </Box> */}
+              <Typography gutterBottom fontFamily={'Hei'}>写下当时的想法、背景或对这件事的看法。</Typography>
               <TextField
                 fullWidth
                 multiline
@@ -892,7 +951,8 @@ function Map({ supabase }) {
               />
             </Box>
             <Box sx={{ mt: 3 }}>
-              <Typography gutterBottom>它发生在</Typography>
+              <Typography gutterBottom>它发生在哪里？</Typography>
+              <Typography fontFamily={'Hei'} fontSize={12}>请选择最相关的场合</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                 {scenarioTags.map(tag => (
                   <Chip
@@ -907,11 +967,11 @@ function Map({ supabase }) {
                         scenario: { ...newIncident.scenario, tags: newTags }
                       });
                     }}
-                    color={newIncident.scenario.tags.includes(tag) ? "primary" : "default"}
+                    color={newIncident.scenario.tags.includes(tag) ? "secondary" : "default"}
                   />
                 ))}
 
-                {/* 添加点名批评和点名表扬的标签 */}
+                {/* 点名批评和点名表扬的标签 */}
                 <Chip
                   key="criticism"
                   label="点名批评选中这里👎"
@@ -921,7 +981,6 @@ function Map({ supabase }) {
                       scenario: {
                         ...newIncident.scenario,
                         showCriticism: !newIncident.scenario.showCriticism,
-                        // 如果取消选中，清空批评内容
                         criticism: !newIncident.scenario.showCriticism ? newIncident.scenario.criticism : ''
                       }
                     });
@@ -977,8 +1036,8 @@ function Map({ supabase }) {
             )}
 
             <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-              <Button variant="transparent" onClick={handleSubmit} sx={{ color: 'red', backgroundColor: 'transparent', fontFamily: 'balloon', fontSize: '1.5vh' }}>Submit</Button>
-              <Button variant="grey" onClick={handleCancel} sx={{ color: 'grey', fontFamily: 'balloon', fontSize: '1.5vh' }}>Cancel</Button>
+              <Button variant="transparent" onClick={handleSubmit} sx={{ color: 'red', backgroundColor: 'transparent', fontFamily: 'balloon', fontSize: '1.3rem' }}>Submit</Button>
+              <Button variant="grey" onClick={handleCancel} sx={{ color: 'grey', fontFamily: 'balloon', fontSize: '1.3rem' }}>Cancel</Button>
             </Box>
           </div>
         </Stack>
