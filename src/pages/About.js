@@ -280,7 +280,7 @@ function About() {
             大家好！我是bibi或者比比或者比哔！
           </MemberInfo>
           <MemberInfo>
-            Manman <br/>
+            孙漫漫 <br/>
             热爱上网冲浪希望用内容创作掀起点小浪花的撰稿人/博士生
           </MemberInfo>
         </MemberContainer>
@@ -332,7 +332,8 @@ function About() {
             </TimelineDate>
             <TimelineInfo>
               我们带着故事再次走上街头 <br/> 
-              在第二次妇女节游行中，Qianchi 基于11月工作坊收集的两个真实故事，创作并实施了行为表演《打乒乓球》。 “¡Es responsabilidad de otros!”（这是别人的责任！） 这场互动行动让公众亲身体验移民女性在身份申请与系统性歧视中的无力与被推诿感——这不是游戏，而是我们的日常。            
+              在第二次妇女节游行中，Qianchi 基于11月工作坊收集的两个真实故事，创作并实施了行为表演《打乒乓球》。 “¡Es responsabilidad de otros!”（这是别人的责任！） 这场互动行动让公众亲身体验移民女性在身份申请与系统性歧视中的无力与被推诿感——这不是游戏，而是我们的日常。
+              <br/>         
               <img src="/timeline/tl_250308.png" style={{width:'30vw'}} alt="2024年03月08日 妇女节行动照片" />
             </TimelineInfo>
           </TimelineSection>
