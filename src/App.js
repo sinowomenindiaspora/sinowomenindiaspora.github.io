@@ -3,7 +3,6 @@ import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { createClient } from '@supabase/supabase-js';
 import Action from './pages/Action';
 import ActionArticle from './pages/ActionArticle';
-import Contributors from './components/Contributors';
 import Resources from './pages/Resources';
 import AddResource from './pages/AddResource';
 import About from './pages/About';
@@ -25,7 +24,7 @@ function App() {
       <Router>
         <Layout>
           <Routes>
-            <Route path="/" element={<StartupPage />} />
+            <Route path="/" element={<StartupPage supabase={supabase} />} />
             <Route path="/map" element={<Map supabase={supabase} />} />
             <Route path="/incident" element={<IncidentInfo supabase={supabase} />} />
             <Route path="/archive" element={<StoryArchive supabase={supabase} />} />

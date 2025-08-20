@@ -24,8 +24,7 @@ function Header() {
     location.pathname === '/action' ||
     location.pathname.startsWith('/action/') ||
     location.pathname.startsWith('/map') ||
-    location.pathname === '/'||
-    location.pathname.startsWith('/archive');
+    location.pathname === '/'
   const requiresNoHeader = location.pathname === '/';
 
   const menuItems = [

@@ -8,7 +8,6 @@ function Layout({ children }) {
   const [showHeader, setShowHeader] = useState(false);
   const [isOverMap, setIsOverMap] = useState(true);
   const isStartupPage = location.pathname === '/';
-  const isArchivePage = location.pathname === '/archive';
   const isActionPage = location.pathname === '/action' || location.pathname.startsWith('/action/');
 
   useEffect(() => {
@@ -30,10 +29,7 @@ function Layout({ children }) {
           maxWidth: '100%',
           margin: 0,
           width: '100vw',
-          // 顶部：非地图页时预留 Header 高度
           paddingTop: isStartupPage ? '0' : (isOverMap ? '0' : '10vh'),
-          // 底部：为 iOS/全面屏等预留安全区；
-          // 非地图页再额外预留 80px（桌面端 footer 高度），移动端无影响
           paddingBottom: isStartupPage
             ? 'env(safe-area-inset-bottom)'
             : (isOverMap

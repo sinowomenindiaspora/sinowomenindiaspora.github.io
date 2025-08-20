@@ -9,23 +9,14 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import CheckIcon from '@mui/icons-material/Check';
 
 function FilterBar({
-  // 新增：添加模式受控（移动端隐藏）
   isAddingMode = false,
-  // 新增：类型切换（stories / spaces）
   filterTypeOptions = ['stories', 'spaces'],
   onFilterTypeChange = () => {},
-  // 地区（由父组件传入七大洲）
   regionOptions = [],
   onRegionChange = () => {},
-  // 暴力类型（与数据库变量名一致）
-  violenceTypeOptions = [],
-  onViolenceTypeChange = () => {},
-  // 新增：搜索提交与错误信息
   onSearchSubmit = () => {},
   searchError = '',
-  // 新增：搜索加载态
   searchLoading = false,
-  // 透传父级样式
   style
 }) {
   const [searchValue, setSearchValue] = useState('');
@@ -47,34 +38,16 @@ function FilterBar({
     return map;
   }, [regionOptions]);
 
-  const violenceLabelMap = useMemo(() => {
-    const map = {};
-    (violenceTypeOptions || []).forEach(opt => {
-      if (opt && typeof opt.value !== 'undefined') map[opt.value] = opt.label || String(opt.value);
-    });
-    return map;
-  }, [violenceTypeOptions]);
 
   const getRegionLabel = (value) => {
     if (!value) return '全部';
     return regionLabelMap[value] || '全部';
   };
 
-  const getViolenceTypeLabel = (value) => {
-    if (!value) return '全部';
-    return violenceLabelMap[value] || '全部';
-  };
-
   const handleRegionChange = (event) => {
     const value = event.target.value;
     setSelectedRegion(value);
     onRegionChange({ target: { value } });
-  };
-
-  const handleViolenceTypeChange = (event) => {
-    const value = event.target.value;
-    setSelectedViolenceType(value);
-    onViolenceTypeChange({ target: { value } });
   };
 
   const handleFilterTypesChange = (event, next) => {
@@ -202,21 +175,6 @@ function FilterBar({
                     }}
                   />
                 )}
-                {selectedViolenceType && selectedFilterTypes.includes('stories') && (
-                  <Chip
-                    label={`暴力: ${getViolenceTypeLabel(selectedViolenceType)}`}
-                    onDelete={() => {
-                      setSelectedViolenceType('');
-                      onViolenceTypeChange({ target: { value: '' } });
-                    }}
-                    size="small"
-                    sx={{
-                      backgroundColor: 'rgba(255,0,93,0.1)',
-                      color: '#333',
-                      '& .MuiChip-deleteIcon': { color: '#ff005d' }
-                    }}
-                  />
-                )}
               </Box>
             )}
 
@@ -295,34 +253,6 @@ function FilterBar({
                   ))}
                 </Select>
               </Box>
-
-              {/* 暴力类型（仅在包含 stories 时展示） */}
-              {selectedFilterTypes.includes('stories') && (
-                <Box>
-                  <Typography className="filterbar-label" sx={{ mb: 0.5 }}>暴力类型</Typography>
-                  <Select
-                    fullWidth
-                    size="small"
-                    value={selectedViolenceType}
-                    onChange={handleViolenceTypeChange}
-                    variant="standard"
-                    MenuProps={{
-                      disableScrollLock: true,
-                      PaperProps: { sx: { zIndex: 1350 } }
-                    }}
-                    sx={{
-                      '&::before': { borderBottomColor: '#ff005d' },
-                      '&::after': { borderBottomColor: '#ff005d' },
-                      '& .MuiSelect-select': { px: 0, py: '6px' }
-                    }}
-                  >
-                    <MenuItem value="">全部类型</MenuItem>
-                    {(violenceTypeOptions || []).map(opt => (
-                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                    ))}
-                  </Select>
-                </Box>
-              )}
             </Box>
           </Box>
         </Collapse>
@@ -409,37 +339,6 @@ function FilterBar({
         </Select>
       </Box>
 
-      {/* 暴力类型（仅在包含 stories 时展示） */}
-      {selectedFilterTypes.includes('stories') && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography className="filterbar-label">暴力类型</Typography>
-          <Select
-            size="small"
-            displayEmpty
-            value={selectedViolenceType}
-            onChange={handleViolenceTypeChange}
-            IconComponent={ArrowDropDownIcon}
-            variant="standard"
-            MenuProps={{
-              disableScrollLock: true,
-              PaperProps: { sx: { zIndex: 1350 } }
-            }}
-            sx={{
-              minWidth: '120px',
-              fontSize: '14px',
-              '&::before': { borderBottomColor: '#ff005d' },
-              '&::after': { borderBottomColor: '#ff005d' },
-              '& .MuiSelect-select': { px: 0, py: '4px' }
-            }}
-          >
-            <MenuItem value="">全部</MenuItem>
-            {(violenceTypeOptions || []).map(opt => (
-              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-            ))}
-          </Select>
-        </Box>
-      )}
-
       {/* Search */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         {searchLoading ? (
@@ -489,13 +388,6 @@ FilterBar.propTypes = {
     })
   ),
   onRegionChange: PropTypes.func,
-  violenceTypeOptions: PropTypes.arrayOf(
-    PropTypes.shape({
-      value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-      label: PropTypes.string
-    })
-  ),
-  onViolenceTypeChange: PropTypes.func,
   onSearchSubmit: PropTypes.func,
   searchError: PropTypes.string,
   searchLoading: PropTypes.bool,

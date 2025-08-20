@@ -300,7 +300,6 @@ function Map({ supabase }) {
       await refreshIncidents();
 
       // 不要在这里调用handleCancel，因为它会重置newIncident
-      // 等待用户关闭回执对话框后再重置表单
     } catch (err) {
       setError(err.message);
     }

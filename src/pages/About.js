@@ -265,7 +265,7 @@ function About() {
           </MemberTitle>
           <MemberInfo>
             Qianchi <br/>
-            大家好，我是裘千尺
+            我是裘千尺，也是一枚燃烧中的小火苗🔥
           </MemberInfo>
           <MemberInfo>
             鸟 <br/>
@@ -273,7 +273,7 @@ function About() {
           </MemberInfo>
           <MemberInfo>
             Noora <br/>
-            大家好我是noora，什么都做一些、渴望和姐妹创造新空间的性别/移民研究博士生。
+            我是Noora，想要和大家一起建立自己的叙事、创造新空间的疯狂吉娃娃！
           </MemberInfo>
           <MemberInfo>
             Bibi <br/>
