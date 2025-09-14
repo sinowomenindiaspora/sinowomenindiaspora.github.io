@@ -1,0 +1,29 @@
+/* 安全区适配，避免 iOS 底部系统栏/自定义 footer 遮挡 */
+:root {
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-top: env(safe-area-inset-top);
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+/* 默认给页面底部留出安全区内边距，尤其是移动端 */
+body {
+  padding-bottom: var(--safe-bottom);
+}
+
+/* 布局容器兜底：若存在固定底部栏，内容区额外留白 */
+.app-has-footer {
+  padding-bottom: calc(80px + var(--safe-bottom));
+}
+
+/* 已有样式 */
+.hover-shadow {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.hover-shadow:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+}

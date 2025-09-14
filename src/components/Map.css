@@ -1,0 +1,31 @@
+.grayscale-map {
+  filter: grayscale(100%);
+}
+
+/* Light map style */
+.dark-map {
+  background-color: #ffffff !important;
+}
+
+.map-tiles {
+  filter: none;
+}
+
+/* Ensure the map container also supports the filter */
+.leaflet-container {
+  background-color: #ffffff !important;
+}
+
+/* Style for the map markers */
+.leaflet-marker-icon {
+  filter: none !important; /* Keep markers colored */
+}
+
+.marker-icon {
+  filter: none !important;
+}
+
+.temp-marker-icon {
+  filter: hue-rotate(24deg) brightness(1.2) !important;
+  z-index: 1000;
+}
