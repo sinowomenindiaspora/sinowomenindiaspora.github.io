@@ -39,7 +39,6 @@
     "deploy": "gh-pages -d build",
     "generate-manifest": "node scripts/generate-manifest.js"
   },
-  "homepage": "https://sinowomenindiaspora.github.io/",
   "eslintConfig": {
     "extends": [
       "react-app",
