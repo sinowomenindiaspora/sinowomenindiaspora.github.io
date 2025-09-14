@@ -1,4 +1,4 @@
-name: Deploy Pages
+name: Deploy React to GitHub Pages
 
 on:
   push:
@@ -20,11 +20,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18  
           cache: 'npm'
-      - run: npm ci
-      - run: npm run build
-      - run: cp build/index.html build/404.html
+      - run: npm ci          
+      - name: Build
+        run: |
+          npm run build
+          cp build/index.html build/404.html
+        env:
+          CI: false    
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./build
