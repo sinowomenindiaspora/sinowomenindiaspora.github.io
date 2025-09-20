@@ -20,7 +20,7 @@ function Header() {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const requiresTransparent = location.pathname === '/archive'
+  const requiresTransparent = location.pathname === '/holder'
   const isAction = location.pathname === '/action' || location.pathname.startsWith('/action/');
   const isResources = location.pathname === '/resources' || location.pathname.startsWith('/resources');
   const isAbout = location.pathname === '/about';
@@ -191,7 +191,7 @@ function Header() {
           display: { xs: 'none', md: 'flex' },
           justifyContent: 'center',
           gap: { xs: 3, md: 6 },
-          backdropFilter: requiresTransparent ? 'none' : 'blur(30px)'
+          backdropFilter: requiresTransparent ? 'none' : 'blur(4px)'
         }}
       >
         {menuItems.map((item) => (

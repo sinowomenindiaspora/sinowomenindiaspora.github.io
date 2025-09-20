@@ -316,7 +316,8 @@ function IncidentInfo({ supabase }) {
             </Typography>
 
             {((Array.isArray(incident.violence_type) && incident.violence_type.length > 0) ||
-              (incident.scenario && incident.scenario.tags && incident.scenario.tags.length > 0)) && (
+              (incident.scenario && incident.scenario.tags && incident.scenario.tags.length > 0) ||
+              (typeof incident.feeling_score === 'number')) && (
               <Box sx={{ mb: 2 }}>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                   {/* 暴力类型标签 */}
@@ -349,6 +350,22 @@ function IncidentInfo({ supabase }) {
                       }}
                     />
                   ))}
+
+                  {/* 心情/感受标签 */}
+                  {typeof incident.feeling_score === 'number' && (
+                    <Chip
+                      key="feeling"
+                      label={`感受：${incident.feeling_score}`}
+                      size="small"
+                      sx={{
+                        bgcolor: 'transparent',
+                        color: '#000',
+                        outline: '0.5px solid',
+                        fontSize: '12px',
+                        height: '24px'
+                      }}
+                    />
+                  )}
                 </Box>
               </Box>
             )}

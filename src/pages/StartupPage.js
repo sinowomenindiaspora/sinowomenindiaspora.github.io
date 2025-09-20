@@ -7,36 +7,35 @@ import markerIcon from '../assets/map_marker/regular-marker.png';
 
 
 const floatUp = keyframes`
-  0% { transform: translateY(calc(100vh + 160px)); opacity: 1; }
-  50% { transform: translateY(40vh); opacity: 1; }
-  100% { transform: translateY(-220px); opacity: 1; }
+  0% { transform: translateY(calc(100vh + 160px)); }
+  100% { transform: translateY(calc(-80vh)); }
 `;
 
 const wobble = keyframes`
-  0%, 100% { transform: translateX(20px); }
-  25% { transform: translateX(5px); }
-  50% { transform: translateX(10px); }
-  75% { transform: translateX(10px); }
+  0%   { transform: translateX(0px); }
+  25%  { transform: translateX(6px); }
+  50%  { transform: translateX(0px); }
+  75%  { transform: translateX(-6px); }
+  100% { transform: translateX(0px); }
 `;
 
-// Raise z-index so balloons are not covered by gradient
 const BalloonsLayer = styled('div')`
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 80vh !important;
   pointer-events: none;
-  z-index: 3;
+  z-index: 10;
 `;
 
 const FloatingBalloon = styled(Box)`
-  position: relative;
-  left: 5%;
-  bottom: -150px;
-  width: ${props => props.width}px;
-  height: ${props => Math.round(props.height)}px;
+  position: absolute;
+  left: ${props => `${props.startx}px`};
+  bottom: -160px;
+  width: ${props => `${props.width}px`};
+  height: ${props => `${Math.round(props.height)}px`};
   animation: ${floatUp} ${props => props.duration}s linear infinite;
-  animation-delay: ${props => props.delay}s; /* negative delay = start mid-animation */
+  animation-delay: ${props => props.delay}s;
   will-change: transform;
 `;
 
@@ -106,48 +105,52 @@ function StartupPage({ supabase }) {
     fetchStories();
   }, [supabase, isMobile]);
 
-  // compute spaced positions with slight horizontal overflow allowed
   const [balloons, setBalloons] = React.useState([]);
   React.useEffect(() => {
     const createBalloons = () => {
       const vw = Math.max(window.innerWidth, 360);
       const count = Math.min(stories.length || (isMobile ? 8 : 12), isMobile ? 8 : 12);
-      const width = isMobile ? 240 : 260; // 气球整体宽度（图+文本）
-      const height = isMobile ? 110 : 120;
-      const overflow = Math.round(width * 0.6); // 允许左右溢出
-      const minX = -overflow;
-      const maxX = vw + overflow - width; // 以左边界计
-      const margin = 28; // 额外间距，避免贴边
+      const minW = isMobile ? 180 : 200;
+      const maxW = isMobile ? 300 : 320;
+      const heightBase = isMobile ? 110 : 120;
 
-      const intervals = []; // 已占用区间 [start, end]
-      const xs = [];
+  const intervals = []; 
+  const margin = 28; 
+  const wobbleAmp = 6;
+  const safePadding = 14 + wobbleAmp; 
 
-      const intersects = (x) => intervals.some(([s, e]) => !(x + width + margin <= s || x >= e + margin));
+  const items = [];
+      for (let i = 0; i < count; i++) {
+        const w = Math.round(minW + Math.random() * (maxW - minW));
+  const minX = safePadding;
+  const maxX = Math.max(minX, vw - w - safePadding);
 
-      const tryPlace = () => {
+        const intersects = (x, width) =>
+          intervals.some(({ s, e }) => !(x + width + margin <= s || x >= e + margin));
+
+        let x = 0;
+        let placed = false;
         for (let t = 0; t < 400; t++) {
-          const x = Math.floor(minX + Math.random(10) * (maxX - minX));
-          if (!intersects(x)) {
-            intervals.push([x, x + width]);
-            return x;
+          x = Math.floor(minX + Math.random() * (maxX - minX));
+          if (!intersects(x, w)) {
+            intervals.push({ s: x, e: x + w });
+            placed = true;
+            break;
           }
         }
-        // 退化为等分
-        const idx = xs.length;
-        const span = (maxX - minX) / Math.max(count, 1);
-        const x = Math.floor(minX + idx * span + span / 2 - width / 2);
-        intervals.push([x, x + width]);
-        return x;
-      };
+        if (!placed) {
+          const span = (maxX - minX) / Math.max(count, 1);
+          x = Math.floor(minX + i * span + span / 2 - w / 2);
+          x = Math.max(minX, Math.min(x, maxX));
+          intervals.push({ s: x, e: x + w });
+        }
 
-      for (let i = 0; i < count; i++) xs.push(tryPlace());
-
-      const items = xs.map((x) => {
-        const duration = 24 + Math.random() * 14; // 24-38s
-        const wobbleduration = 5 + Math.random() * 4; // 5-9s
+  const duration = 32 + Math.random() * 20; // 32-52s
         const delay = -Math.random() * duration;
-        return { startX: x, width, height, duration, wobbleduration, delay };
-      });
+  const height = heightBase;
+  const wobbleduration = 6 + Math.random() * 6; // 6-12s
+  items.push({ startX: x, width: w, height, duration, wobbleduration, delay });
+      }
       setBalloons(items);
     };
     createBalloons();
@@ -171,7 +174,6 @@ function StartupPage({ supabase }) {
     <Box sx={{ minHeight: '100vh', width: '100vw', position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: gradientHeight, background: 'linear-gradient(to bottom, rgba(255, 0, 94, 1) 0%, transparent 100%)', zIndex: 2 }} />
 
-      {/* Balloons layer above gradient */}
       <BalloonsLayer>
         {balloons.map((b, idx) => {
           const s = stories[idx % Math.max(stories.length, 1)] || {};
@@ -194,20 +196,19 @@ function StartupPage({ supabase }) {
       {/* Background image */}
       <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', zIndex: 1 }} />
 
-      {/* Title above balloons */}
-      <Box sx={{ position: 'absolute', top: titleTop, left: '50%', transform: 'translate(-50%, -10%)', zIndex: 4, textAlign: 'center' }}>
+  {/* Title above balloons */}
+  <Box sx={{ position: 'absolute', top: titleTop, left: '50%', transform: 'translate(-50%, -10%)', zIndex: 20, textAlign: 'center' }}>
         <Typography sx={{ fontFamily: 'balloon', fontSize: isMobile? '2.5rem':'4.5em', fontWeight: '400', color: '#000', textTransform: 'uppercase', lineHeight: 1.1, textAlign: 'center' }}>
           Archive of Sino Women in
           Diaspora
         </Typography>
       </Box>
 
-      <Box sx={{ position: 'absolute', bottom: '30vh', right: '50vh', zIndex: 4 }}>
+  <Box sx={{ position: 'absolute', bottom: '30vh', right: '50vh', zIndex: 20 }}>
         <Typography sx={{ fontSize: '1rem', color: '#000', fontFamily: 'SimHei, sans-serif' }}>记录即反抗</Typography>
       </Box>
 
-      {/* Bottom menu - 桌面端显示，移动端隐藏 */}
-      <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 4, width: '100%', padding: 3, display: { xs: 'none', md: 'flex' }, justifyContent: 'center', gap: { xs: 3, md: 6 } }}>
+  <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20, width: '100%', padding: 3, display: { xs: 'none', md: 'flex' }, justifyContent: 'center', gap: { xs: 3, md: 6 } }}>
         {menuItems.map((item, index) => (
           <Typography key={index} onClick={() => navigate(item.path)} sx={{ fontSize: { xs: '1rem', md: '1.2rem' }, color: '#000', cursor: 'pointer', fontFamily: 'SimHei, sans-serif', fontWeight: location.pathname === item.path ? 'bold' : 'normal', transition: 'font-weight 0.2s ease', '&:hover': { fontWeight: 'bold' } }}>
             {item.label}
