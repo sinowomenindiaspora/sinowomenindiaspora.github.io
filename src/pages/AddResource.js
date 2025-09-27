@@ -52,7 +52,6 @@ function AddResource({ supabase }) {
     // Physical space fields
     contact_phone: '',
     address: '',
-    additional_note: '',
     tags: '',
     lat: null,
     lng: null
@@ -125,14 +124,22 @@ function AddResource({ supabase }) {
         return;
       }
       
-      // Submit to spaces table for physical spaces
+      // Submit to spaces table for physical spaces（仅发送空间相关字段，排除 instagram/site/type 等）
       try {
+        const spacePayload = {
+          name: formData.name,
+          email: formData.email,
+          contact_phone: formData.contact_phone,
+          address: formData.address,
+          tags: formData.tags,
+          lat: formData.lat,
+          lng: formData.lng,
+          description: formData.description,
+          status: 'active'
+        };
         const { error: submitError } = await supabase
           .from('spaces')
-          .insert([{
-            ...formData,
-            status: 'active'
-          }]);
+          .insert([spacePayload]);
 
         if (submitError) throw submitError;
       } catch (err) {
@@ -182,7 +189,6 @@ function AddResource({ supabase }) {
       description: '',
       contact_phone: '',
       address: '',
-      additional_note: '',
       tags: '',
       lat: null,
       lng: null
@@ -264,7 +270,7 @@ function AddResource({ supabase }) {
                       position={[selectedLocation.lat, selectedLocation.lng]}
                       icon={new L.Icon({
                         iconUrl: require('../assets/map_marker/resource-marker.png'),
-                        iconSize: [25, 70],
+                        iconSize: [60, 70],
                         iconAnchor: [20, 60]
                       })}
                     />
@@ -430,8 +436,8 @@ function AddResource({ supabase }) {
                     <TextField
                       fullWidth
                       label="附加说明"
-                      value={formData.additional_note}
-                      onChange={handleInputChange('additional_note')}
+                      value={formData.description}
+                      onChange={handleInputChange('description')}
                       margin="normal"
                       multiline
                       rows={3}
