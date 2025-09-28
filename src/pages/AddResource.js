@@ -135,6 +135,7 @@ function AddResource({ supabase }) {
           lat: formData.lat,
           lng: formData.lng,
           description: formData.description,
+          instagram: formData.instagram,
           status: 'active'
         };
         const { error: submitError } = await supabase
@@ -358,6 +359,16 @@ function AddResource({ supabase }) {
                   rows={3}
                   placeholder="请描述这个资源的详细信息..."
                 />
+
+                {/* Instagram 对两种类型都可选填 */}
+                <TextField
+                  fullWidth
+                  label="Instagram"
+                  value={formData.instagram}
+                  onChange={handleInputChange('instagram')}
+                  margin="normal"
+                  placeholder="@username"
+                />
                 
                 {!isPhysicalSpace && (
                   <>
@@ -368,15 +379,6 @@ function AddResource({ supabase }) {
                       onChange={handleInputChange('site')}
                       margin="normal"
                       placeholder="https://example.com"
-                    />
-                    
-                    <TextField
-                      fullWidth
-                      label="Instagram"
-                      value={formData.instagram}
-                      onChange={handleInputChange('instagram')}
-                      margin="normal"
-                      placeholder="@username"
                     />
                   </>
                 )}
@@ -431,16 +433,6 @@ function AddResource({ supabase }) {
                       InputProps={{
                         endAdornment: isGettingAddress ? <CircularProgress size={20} /> : null
                       }}
-                    />
-                    
-                    <TextField
-                      fullWidth
-                      label="附加说明"
-                      value={formData.description}
-                      onChange={handleInputChange('description')}
-                      margin="normal"
-                      multiline
-                      rows={3}
                     />
                   </>
                 )}
